@@ -16,11 +16,13 @@ import { Hub, Upgrade } from './hub';
 import type { SockData } from './machine';
 import { site, trimAudit } from './index';
 import { type Env, clientIp } from './util';
+import { readOidcConfig } from './oidc-config';
 
 const PORT = Number(process.env.PORT) || 8080;
 const DATA_DIR = resolve(process.env.DATA_DIR || './data');
 const WEB_DIR = resolve(process.env.WEB_DIR || join(import.meta.dir, '../../web/dist'));
 const TRUST_PROXY = /^(1|true|yes)$/i.test(process.env.TRUST_PROXY ?? '');
+const OIDC = readOidcConfig(process.env);
 
 mkdirSync(DATA_DIR, { recursive: true });
 const db = new Db(join(DATA_DIR, 'coderail.sqlite'));
@@ -29,6 +31,7 @@ migrate(db);
 db.sqlite.exec('UPDATE machines SET online = 0');
 const env: Env = {
   DB: db,
+  OIDC,
   SETUP_TOKEN: process.env.SETUP_TOKEN || undefined,
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || undefined,
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,

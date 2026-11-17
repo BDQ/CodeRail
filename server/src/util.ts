@@ -1,10 +1,12 @@
 // Copyright 2026 Wiva, Inc.
 // SPDX-License-Identifier: Apache-2.0
 import type { Db } from './db';
+import type { OidcConfig } from './oidc-config';
 
 /** The server's database and settings (from the environment, see main.ts). */
 export interface Env {
   DB: Db;
+  OIDC?: OidcConfig;
   SETUP_TOKEN?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
