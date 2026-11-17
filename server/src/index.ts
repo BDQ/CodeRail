@@ -25,6 +25,7 @@ import { installPowerShell, installScript, windowsManifest } from './install';
 import { latest } from './downloads';
 import { type Hub, Upgrade } from './hub';
 import { fileRoute, zipRoute, zipStart } from './files';
+import { oidcCallback, oidcStart } from './oidc';
 
 /** What a request gets: a response, a WebSocket upgrade, or null for the web app's files (main.ts serves those). */
 export async function site(req: Request, env: Env, hub: Hub, url: URL): Promise<Response | Upgrade | null> {
@@ -86,6 +87,8 @@ async function api(req: Request, env: Env, hub: Hub, url: URL): Promise<Response
   if (m !== 'GET' && m !== 'HEAD') checkOrigin(req, url);
 
   // -- no sign-in needed
+  if (path === '/oidc/start' && m === 'GET') return await oidcStart(env);
+  if (path === '/oidc/callback' && m === 'GET') return await oidcCallback(env, req, url);
   if (path === '/version/windows-x64' && m === 'GET') {
     const l = await latest();
     const manifest = l && windowsManifest(l);
