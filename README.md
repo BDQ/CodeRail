@@ -97,11 +97,13 @@ docker compose up -d            # the image from ghcr.io; everything it keeps is
 The image is [`ghcr.io/wiva-hq/coderail`](https://github.com/wiva-hq/CodeRail/pkgs/container/coderail)
 (amd64 and arm64). Update with `git pull && docker compose pull && docker compose up -d`.
 
-OIDC sign-in is available for identities already linked in the database. The server accepts optional `OIDC_ISSUER`, `OIDC_CLIENT_ID`,
+OIDC sign-in can create a non-admin account on first sign-in after initial admin setup. The server accepts optional `OIDC_ISSUER`, `OIDC_CLIENT_ID`,
 `OIDC_CLIENT_SECRET`, and `OIDC_CALLBACK_URL` environment variables in preparation for it. If any is set,
 all four must be nonempty; the issuer and callback must be HTTPS URLs without credentials, query or fragment.
-The callback URL must end in `/api/oidc/callback`. Start sign-in at `/api/oidc/start`. Account linking and
-automatic provisioning are not yet available. Local sign-in remains available. Keep the client secret private.
+The callback URL must end in `/api/oidc/callback`. Start sign-in at `/api/oidc/start`. A verified email is required;
+its local part must be a valid, unused CodeRail username. Existing local accounts are not linked automatically.
+If a username conflicts, an administrator should review machine ownership and grants before deleting the conflicting
+account. Local sign-in remains available. Keep the client secret private.
 
 **2 · Create the first admin** at `https://your-site/setup` with that token.
 

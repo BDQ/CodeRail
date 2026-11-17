@@ -3,7 +3,8 @@
 import { expect, test } from 'bun:test';
 import { Db } from './db';
 import { migrate } from './schema';
-import { oidcCallback } from './oidc';
+import { oidcCallback, provisionIdentity } from './oidc';
+import { verifyLogin } from './auth';
 import { sha256, type Env } from './util';
 import { oidcStart } from './oidc';
 import * as client from 'openid-client';
@@ -106,12 +107,52 @@ test('OIDC authorization code flow accepts only valid tokens for linked active u
       'OIDC sign-in failed',
     );
     db.sqlite.exec("UPDATE users SET disabled = 1 WHERE id = 'u1'");
-    await expect(attempt()).rejects.toThrow('No active account');
+    await expect(attempt()).rejects.toThrow('This account is disabled');
     db.sqlite.exec('DELETE FROM external_identities');
-    await expect(attempt()).rejects.toThrow('No active account');
+    await expect(attempt()).rejects.toThrow();
     expect(db.sqlite.query('SELECT count(*) AS n FROM auth_sessions').get()).toEqual({ n: 1 });
+    db.sqlite.exec(
+      "INSERT INTO users (id, username, pw_hash, pw_salt, is_admin, created_at) VALUES ('admin', 'admin', 'hash', 'salt', 1, 1)",
+    );
+    const firstLogin = await attempt((token) => {
+      if (token.payload.nonce) {
+        token.payload.email = 'newuser@example.com';
+        token.payload.email_verified = true;
+      }
+    });
+    expect(firstLogin.status).toBe(302);
+    expect(db.sqlite.query("SELECT username, is_admin, password_login FROM users WHERE username = 'newuser'").get()).toEqual({
+      username: 'newuser',
+      is_admin: 0,
+      password_login: 0,
+    });
   } finally {
     db.sqlite.close();
     await mock.stop();
+  }
+});
+
+test('first sign-in provisions an identity atomically and never enables password login', async () => {
+  const db = new Db(':memory:');
+  migrate(db);
+  const env: Env = { DB: db };
+  try {
+    expect(() => provisionIdentity(env, 'issuer', 'subject', 'alice@example.com')).toThrow('Set up an administrator');
+    db.sqlite.exec(
+      "INSERT INTO users (id, username, pw_hash, pw_salt, is_admin, created_at) VALUES ('admin', 'admin', 'hash', 'salt', 1, 1)",
+    );
+    expect(() => provisionIdentity(env, 'issuer', 'subject')).toThrow('verified email');
+    expect(() => provisionIdentity(env, 'issuer', 'subject', 'admin@example.com')).toThrow('Username already exists');
+    expect(() => provisionIdentity(env, 'issuer', 'subject', 'a@example.com')).toThrow('cannot be used');
+    const user = provisionIdentity(env, 'issuer', 'subject', 'Alice@example.com');
+    expect(user.username).toBe('alice');
+    expect(user.isAdmin).toBe(false);
+    expect(provisionIdentity(env, 'issuer', 'subject')).toEqual(user);
+    await expect(verifyLogin(env, 'alice', 'anything')).rejects.toThrow('Wrong username or password');
+    expect(db.sqlite.query('SELECT count(*) AS n FROM external_identities').get()).toEqual({ n: 1 });
+    db.sqlite.query('UPDATE users SET disabled = 1 WHERE id = ?').run(user.id);
+    expect(() => provisionIdentity(env, 'issuer', 'subject', 'other@example.com')).toThrow('disabled');
+  } finally {
+    db.sqlite.close();
   }
 });

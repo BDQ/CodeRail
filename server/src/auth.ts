@@ -46,12 +46,12 @@ export async function createUser(env: Env, username: string, password: string, i
 }
 
 export async function verifyLogin(env: Env, username: string, password: string): Promise<User> {
-  const row = await env.DB.prepare('SELECT id, username, pw_hash, pw_salt, is_admin, disabled FROM users WHERE username = ?')
+  const row = await env.DB.prepare('SELECT id, username, pw_hash, pw_salt, is_admin, disabled, password_login FROM users WHERE username = ?')
     .bind(username)
-    .first<{ id: string; username: string; pw_hash: string; pw_salt: string; is_admin: number; disabled: number }>();
+    .first<{ id: string; username: string; pw_hash: string; pw_salt: string; is_admin: number; disabled: number; password_login: number }>();
   // Hash even when the user does not exist, so timing does not tell which usernames exist.
-  const { hash } = await hashPassword(password, row?.pw_salt ?? 'AAAAAAAAAAAAAAAAAAAAAA');
-  if (!row || !timingSafeEqual(hash, row.pw_hash) || row.disabled) throw new HttpError(401, 'Wrong username or password');
+  const { hash } = await hashPassword(password, row?.password_login ? row.pw_salt : 'AAAAAAAAAAAAAAAAAAAAAA');
+  if (!row || !row.password_login || !timingSafeEqual(hash, row.pw_hash) || row.disabled) throw new HttpError(401, 'Wrong username or password');
   return { id: row.id, username: row.username, isAdmin: !!row.is_admin };
 }
 
