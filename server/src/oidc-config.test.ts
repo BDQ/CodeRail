@@ -3,11 +3,22 @@
 import { describe, expect, test } from 'bun:test';
 import { readOidcConfig } from './oidc-config';
 
-const valid = { OIDC_ISSUER: 'https://example.okta.com', OIDC_CLIENT_ID: 'client', OIDC_CLIENT_SECRET: 'secret', OIDC_CALLBACK_URL: 'https://coderail.example/api/oidc/callback' };
+const valid = {
+  OIDC_ISSUER: 'https://example.okta.com',
+  OIDC_CLIENT_ID: 'client',
+  OIDC_CLIENT_SECRET: 'secret',
+  OIDC_CALLBACK_URL: 'https://coderail.example/api/oidc/callback',
+};
 
 describe('OIDC configuration', () => {
   test('is optional', () => expect(readOidcConfig({})).toBeUndefined());
-  test('accepts complete configuration', () => expect(readOidcConfig(valid)).toEqual({ issuer: valid.OIDC_ISSUER, clientId: 'client', clientSecret: 'secret', callbackUrl: valid.OIDC_CALLBACK_URL }));
+  test('accepts complete configuration', () =>
+    expect(readOidcConfig(valid)).toEqual({
+      issuer: valid.OIDC_ISSUER,
+      clientId: 'client',
+      clientSecret: 'secret',
+      callbackUrl: valid.OIDC_CALLBACK_URL,
+    }));
   test('rejects partial and empty configuration', () => {
     expect(() => readOidcConfig({ OIDC_CLIENT_ID: 'client' })).toThrow('OIDC_ISSUER');
     expect(() => readOidcConfig({ ...valid, OIDC_CLIENT_SECRET: ' ' })).toThrow('OIDC_CLIENT_SECRET');

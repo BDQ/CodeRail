@@ -12,8 +12,12 @@ test('upgrades existing users and grants and enforces external identity ownershi
     const sql = db.sqlite;
     sql.exec(initial);
     sql.exec(auditIndex);
-    sql.exec("CREATE TABLE migrations (name TEXT PRIMARY KEY, applied_at INTEGER NOT NULL); INSERT INTO migrations VALUES ('0001_init.sql', 0), ('0002_audit_at.sql', 0)");
-    sql.exec("INSERT INTO users (id, username, pw_hash, pw_salt, created_at) VALUES ('u1', 'alice', 'hash', 'salt', 1), ('u2', 'bob', 'hash', 'salt', 1)");
+    sql.exec(
+      "CREATE TABLE migrations (name TEXT PRIMARY KEY, applied_at INTEGER NOT NULL); INSERT INTO migrations VALUES ('0001_init.sql', 0), ('0002_audit_at.sql', 0)",
+    );
+    sql.exec(
+      "INSERT INTO users (id, username, pw_hash, pw_salt, created_at) VALUES ('u1', 'alice', 'hash', 'salt', 1), ('u2', 'bob', 'hash', 'salt', 1)",
+    );
     sql.exec("INSERT INTO machines (id, name, token_hash, owner_id, created_at) VALUES ('m1', 'machine', 'token', 'u1', 1)");
     sql.exec("INSERT INTO grants (machine_id, user_id, role) VALUES ('m1', 'u1', 'viewer')");
     migrate(db);
